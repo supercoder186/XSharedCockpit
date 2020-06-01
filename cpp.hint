@@ -1,0 +1,8 @@
+// Hint files help the Visual Studio IDE interpret Visual C++ identifiers
+// such as names of functions and macros.
+// For more information see https://go.microsoft.com/fwlink/?linkid=865984
+#define PLUGIN_API extern "C" __attribute__((visibility("default")))
+#define PLUGIN_API
+#define PLUGIN_API extern "C" __declspec(dllexport)
+#define PLUGIN_API __attribute__((visibility("default")))
+#define PLUGIN_API __declspec(dllexport)
