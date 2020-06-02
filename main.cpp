@@ -69,6 +69,8 @@ PLUGIN_API int  XPluginEnable(void)  {
 		drefs.push_back(XPLMFindDataRef(dref_name.c_str()));
 	return 1; 
 }
+
+
 PLUGIN_API void XPluginReceiveMessage(XPLMPluginID inFrom, int inMsg, void * inParam) { }
 
 void load_plugin() {
