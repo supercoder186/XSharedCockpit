@@ -22,6 +22,12 @@ XPLMMenuID menu_id;
 vector<string> dref_strings;
 vector <XPLMDataRef> drefs;
 
+//Constant defs
+const string master_address = "127.0.0.1";
+const int master_port = 49000;
+const string slave_adrress = "127.0.0.1";
+const int slave_port = 49001;
+
 //Function defs
 void menu_handler(void*, void*);
 void load_plugin();
