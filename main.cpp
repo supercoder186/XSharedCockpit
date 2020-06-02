@@ -13,6 +13,8 @@
 #include <sstream>
 #include <vector>
 #include <iterator>
+#include <evpp/udp/udp_server.h>
+#include <evpp/udp/udp_message.h>
 
 #if IBM
 	#include <windows.h>
@@ -96,7 +98,7 @@ PLUGIN_API void XPluginDisable(void) {
 	drefs.clear();
 }
 
-PLUGIN_API int  XPluginEnable(void) {
+PLUGIN_API int XPluginEnable(void) {
 	XPLMDebugString("XSharedCockpit initializing");
 	for (auto const& dref_name : dref_strings) {
 		auto dref = XPLMFindDataRef(dref_name.c_str());
@@ -127,10 +129,10 @@ void load_plugin() {
 //My functions
 void menu_handler(void* in_menu_ref, void* in_item_ref) {
 	if (!strcmp((const char*)in_item_ref, "Toggle Master"))	{
-		//Toggle Master
+		toggle_master();
 	}
 	else if (!strcmp((const char*)in_item_ref, "Toggle Slave"))	{
-		//Toggle Slave
+		toggle_slave();
 	}
 }
 
@@ -215,6 +217,38 @@ void sync_datarefs() {
 			auto value = stod(values[1]);
 			XPLMSetDatad(dref, value);
 		}
+	}
+}
+
+void start_master() {
+
+}
+
+void stop_master() {
+
+}
+
+void toggle_master() {
+	if (!running) {
+		start_master();
+	} else if (running && is_master) {
+		stop_master();
+	}
+}
+
+void start_slave() {
+
+}
+
+void stop_slave() {
+
+}
+
+void toggle_slave() {
+	if (!running) {
+		start_slave();
+	} else if (running && !is_master) {
+		stop_slave();
 	}
 }
 
