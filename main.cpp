@@ -7,6 +7,8 @@
 #include <string>
 #include <cstring>
 #include <vector>
+#include "SimpleIni.h"
+
 #if IBM
 	#include <windows.h>
 #endif
@@ -32,6 +34,7 @@ const int slave_port = 49001;
 void menu_handler(void*, void*);
 void load_plugin();
 float loop(float elapsed1, float elapsed2, int ctr, void* refcon);
+bool number_contains(int number, int check);
 
 
 PLUGIN_API int XPluginStart(char * outName, char * outSig,	char * outDesc){
@@ -81,30 +84,42 @@ PLUGIN_API int  XPluginEnable(void) {
 	return 1; 
 }
 
-
 PLUGIN_API void XPluginReceiveMessage(XPLMPluginID inFrom, int inMsg, void * inParam) { }
 
 void load_plugin() {
 	char name[512];
 	char path[512];
 	XPLMGetNthAircraftModel(0, name, path);
-	string cfg_file(path);
-	size_t pos = cfg_file.find(name);
-	cfg_file = cfg_file.substr(0, pos);
-	cfg_file.append("smartcopilot.cfg");
+	string cfg_file_path(path);
+	size_t pos = cfg_file_path.find(name);
+	cfg_file_path = cfg_file_path.substr(0, pos);
+	cfg_file_path.append("smartcopilot.cfg");
+	XPLMDebugString(cfg_file_path.c_str());
+	CSimpleIniA ini;
+	ini.SetUnicode();
+	ini.LoadFile(cfg_file_path.c_str());
+
 }
 
 void menu_handler(void* in_menu_ref, void* in_item_ref) {
-	if (!strcmp((const char*)in_item_ref, "Toggle Master"))
-	{
+	if (!strcmp((const char*)in_item_ref, "Toggle Master"))	{
 		//Toggle Master
 	}
-	else if (!strcmp((const char*)in_item_ref, "Toggle Slave"))
-	{
+	else if (!strcmp((const char*)in_item_ref, "Toggle Slave"))	{
 		//Toggle Slave
 	}
 }
 
 float loop(float elapsed1, float elapsed2, int ctr, void* refcon) {
 	return -1;
+}
+
+bool number_contains(int number, int check) {
+	for (int i = 16; i >= 1; i /= 2) {
+		if (number > i && i == check) {
+			return true;
+		}
+	}
+
+	return false;
 }
