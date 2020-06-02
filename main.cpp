@@ -59,6 +59,8 @@ PLUGIN_API int XPluginStart(char * outName, char * outSig,	char * outDesc){
 	dref_strings.push_back("sim/flightmodel/position/local_vx");
 	dref_strings.push_back("sim/flightmodel/position/local_vy");
 	dref_strings.push_back("sim/flightmodel/position/local_vz");
+
+	XPLMDebugString("XSharedCockpit has started");
 	return 1;
 }
 
@@ -70,9 +72,12 @@ PLUGIN_API void XPluginDisable(void) {
 	drefs.clear();
 }
 
-PLUGIN_API int  XPluginEnable(void)  { 
+PLUGIN_API int  XPluginEnable(void) {
+	XPLMDebugString("XSharedCockpit initializing");
 	for (auto const& dref_name: dref_strings)
 		drefs.push_back(XPLMFindDataRef(dref_name.c_str()));
+
+	XPLMDebugString("XSharedCockpit initialized");
 	return 1; 
 }
 

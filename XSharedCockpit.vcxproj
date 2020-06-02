@@ -75,7 +75,7 @@
       <AdditionalIncludeDirectories>SDK\CHeaders\Wrappers;SDK\CHeaders\XPLM;SDK\CHeaders\Widgets;Header Files;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WINVER=0x0601;_WIN32_WINNT=0x0601;_WIN32_WINDOWS=0x0601;WIN32;NDEBUG;_WINDOWS;_USRDLL;SIMDATA_EXPORTS;IBM=1;XPLM200=1;XPLM210=1;XPLM300=1;XPLM301=1;XPLM302=1;XPLM303=1;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AssemblerListingLocation>.\Release\64\</AssemblerListingLocation>
-      <PrecompiledHeaderOutputFile>.\Release\64\Hello-World-SDK-3.pch</PrecompiledHeaderOutputFile>
+      <PrecompiledHeaderOutputFile>.\Release\64\XSharedCockpit.pch</PrecompiledHeaderOutputFile>
       <PrecompiledHeader>
       </PrecompiledHeader>
       <ObjectFileName>.\Release\64\</ObjectFileName>
@@ -89,7 +89,7 @@
     <Midl>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <PreprocessorDefinitions>WINVER=0x0601;_WIN32_WINNT=0x0601;_WIN32_WINDOWS=0x0601;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <TypeLibraryName>.\Release\Hello-World-SDK-3.tlb</TypeLibraryName>
+      <TypeLibraryName>.\Release\XSharedCockpit.tlb</TypeLibraryName>
       <MkTypLibCompatible>true</MkTypLibCompatible>
     </Midl>
     <ResourceCompile>
@@ -98,13 +98,13 @@
     </ResourceCompile>
     <Bscmake>
       <SuppressStartupBanner>true</SuppressStartupBanner>
-      <OutputFile>.\Release\Hello-World-SDK-3.bsc</OutputFile>
+      <OutputFile>.\Release\XSharedCockpit.bsc</OutputFile>
     </Bscmake>
     <Link>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <LinkDLL>true</LinkDLL>
       <SubSystem>Console</SubSystem>
-      <ImportLibrary>.\Release\64\Hello-World-SDK-3.lib</ImportLibrary>
+      <ImportLibrary>.\Release\64\XSharedCockpit.lib</ImportLibrary>
       <AdditionalLibraryDirectories>SDK\Libraries\Win;Libraries;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>Opengl32.lib;odbc32.lib;odbccp32.lib;XPLM_64.lib;XPWidgets_64.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
@@ -120,7 +120,7 @@
       <AdditionalIncludeDirectories>SDK\CHeaders\XPLM;SDK\CHeaders\Widgets;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WINVER=0x0601;_WIN32_WINNT=0x0601;_WIN32_WINDOWS=0x0601;WIN32;_DEBUG;_WINDOWS;_USRDLL;SIMDATA_EXPORTS;IBM=1;XPLM200=1;XPLM210=1;XPLM300=1;XPLM301=1;XPLM302=1;XPLM303=1;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AssemblerListingLocation>.\Debug\64\</AssemblerListingLocation>
-      <PrecompiledHeaderOutputFile>.\Debug\64\Hello-World-SDK-3.pch</PrecompiledHeaderOutputFile>
+      <PrecompiledHeaderOutputFile>.\Debug\64\XSharedCockpit.pch</PrecompiledHeaderOutputFile>
       <PrecompiledHeader>
       </PrecompiledHeader>
       <ObjectFileName>.\Debug\64\</ObjectFileName>
@@ -132,7 +132,7 @@
     <Midl>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <PreprocessorDefinitions>WINVER=0x0601;_WIN32_WINNT=0x0601;_WIN32_WINDOWS=0x0601;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <TypeLibraryName>.\Debug\Hello-World-SDK-3.tlb</TypeLibraryName>
+      <TypeLibraryName>.\Debug\XSharedCockpit.tlb</TypeLibraryName>
       <MkTypLibCompatible>true</MkTypLibCompatible>
     </Midl>
     <ResourceCompile>
@@ -141,14 +141,14 @@
     </ResourceCompile>
     <Bscmake>
       <SuppressStartupBanner>true</SuppressStartupBanner>
-      <OutputFile>.\Debug\Hello-World-SDK-3.bsc</OutputFile>
+      <OutputFile>.\Debug\XSharedCockpit.bsc</OutputFile>
     </Bscmake>
     <Link>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <LinkDLL>true</LinkDLL>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
-      <ImportLibrary>.\Debug\64\Hello-World-SDK-3.lib</ImportLibrary>
+      <ImportLibrary>.\Debug\64\XSharedCockpit.lib</ImportLibrary>
       <AdditionalLibraryDirectories>SDK\Libraries\Win;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>Opengl32.lib;odbc32.lib;odbccp32.lib;XPLM_64.lib;XPWidgets_64.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>

@@ -1,9 +1,13 @@
 f:\programming\x-plane\xsharedcockpit\release\64\vc142.pdb
-f:\programming\x-plane\xsharedcockpit\release\64\hello-world.obj
+f:\programming\x-plane\xsharedcockpit\release\64\pluginpath.obj
+f:\programming\x-plane\xsharedcockpit\release\64\main.obj
 f:\programming\x-plane\xsharedcockpit\release\plugins\xsharedcockpit\64\win.xpl
 f:\programming\x-plane\xsharedcockpit\release\plugins\xsharedcockpit\64\win.pdb
 f:\programming\x-plane\xsharedcockpit\release\64\hello-world-sdk-3.lib
 f:\programming\x-plane\xsharedcockpit\release\64\hello-world-sdk-3.exp
+f:\programming\x-plane\xsharedcockpit\release\64\xsharedcockpit.lib
+f:\programming\x-plane\xsharedcockpit\release\64\xsharedcockpit.exp
+f:\programming\x-plane\xsharedcockpit\release\64\hello-world.obj
 f:\programming\x-plane\xsharedcockpit\.\release\plugins\xsharedcockpit\64\win.xpl
 f:\programming\x-plane\xsharedcockpit\release\64\xsharedcockpit.tlog\cl.command.1.tlog
 f:\programming\x-plane\xsharedcockpit\release\64\xsharedcockpit.tlog\cl.read.1.tlog
