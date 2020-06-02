@@ -1,34 +1,54 @@
+//External libraries
 #include "XPLMMenus.h"
 #include "XPLMProcessing.h"
 #include "XPLMDataAccess.h"
 #include "XPLMPlugin.h"
 #include "XPLMUtilities.h"
 #include "XPLMPlanes.h"
+#include "SimpleIni.h"
+
+//Standard libraries
 #include <string>
 #include <cstring>
+#include <sstream>
 #include <vector>
-#include "SimpleIni.h"
+#include <iterator>
 
 #if IBM
 	#include <windows.h>
 #endif
 
-//Using defs
+//Using object defs
 using std::vector;
 using std::string;
 using std::size_t;
+using std::istringstream;
+
+//Using function defs
+using std::to_string;
+using std::copy;
+using std::replace;
+using std::stoi;
+using std::stod;
+using std::stof;
+using std::back_inserter;
+using std::getline;
 
 //Variable defs
 int menu_container_index;
 XPLMMenuID menu_id;
 vector<string> dref_strings;
 vector <XPLMDataRef> drefs;
+vector <XPLMDataTypeID> dref_types;
 
 //Constant defs
 const string master_address = "127.0.0.1";
 const int master_port = 49000;
 const string slave_adrress = "127.0.0.1";
 const int slave_port = 49001;
+bool running = false;
+bool is_master = false;
+bool is_connected = false;
 
 //Function defs
 void menu_handler(void*, void*);
@@ -37,6 +57,7 @@ float loop(float elapsed1, float elapsed2, int ctr, void* refcon);
 bool number_contains(int number, int check);
 
 
+//X-Plane API functions
 PLUGIN_API int XPluginStart(char * outName, char * outSig,	char * outDesc){
 	strcpy(outName, "XSharedCockpit");
 	strcpy(outSig, "com.thecodingaviator.xsharedcockpit");
@@ -77,8 +98,11 @@ PLUGIN_API void XPluginDisable(void) {
 
 PLUGIN_API int  XPluginEnable(void) {
 	XPLMDebugString("XSharedCockpit initializing");
-	for (auto const& dref_name: dref_strings)
-		drefs.push_back(XPLMFindDataRef(dref_name.c_str()));
+	for (auto const& dref_name : dref_strings) {
+		auto dref = XPLMFindDataRef(dref_name.c_str());
+		drefs.push_back(dref);
+		dref_types.push_back(XPLMGetDataRefTypes(dref));
+	}
 
 	XPLMDebugString("XSharedCockpit initialized");
 	return 1; 
@@ -98,9 +122,9 @@ void load_plugin() {
 	CSimpleIniA ini;
 	ini.SetUnicode();
 	ini.LoadFile(cfg_file_path.c_str());
-
 }
 
+//My functions
 void menu_handler(void* in_menu_ref, void* in_item_ref) {
 	if (!strcmp((const char*)in_item_ref, "Toggle Master"))	{
 		//Toggle Master
@@ -108,10 +132,6 @@ void menu_handler(void* in_menu_ref, void* in_item_ref) {
 	else if (!strcmp((const char*)in_item_ref, "Toggle Slave"))	{
 		//Toggle Slave
 	}
-}
-
-float loop(float elapsed1, float elapsed2, int ctr, void* refcon) {
-	return -1;
 }
 
 bool number_contains(int number, int check) {
@@ -122,4 +142,90 @@ bool number_contains(int number, int check) {
 	}
 
 	return false;
+}
+
+void send_datarefs() {
+	if (!is_connected) {
+		return;
+	}
+
+	string dref_string = "";
+
+	for (int i = 0; i < drefs.size(); i++) {
+		auto type = dref_types.at(i);
+		string value;
+		auto dref = drefs.at(i);
+		if (type == xplmType_Int) {
+			value = to_string(XPLMGetDatai(dref));
+		} else if (type == xplmType_Float) {
+			value = to_string(XPLMGetDataf(dref));
+		} else if (type == xplmType_Double) {
+			value = to_string(XPLMGetDatad(dref));
+		}
+
+		if (!value.empty()) {
+			dref_string = dref_string
+				.append(to_string(i))
+				.append("=")
+				.append(value)
+				.append(" ");
+		}
+	}
+
+	XPLMDebugString(dref_string.c_str());
+}
+
+template <typename Out>
+void split(const std::string& s, char delim, Out result) {
+	istringstream iss(s);
+	string item;
+	while (getline(iss, item, delim)) {
+		*result++ = item;
+	}
+}
+
+vector<string> split(const std::string& s, char delim) {
+	vector<string> elems;
+	split(s, delim, back_inserter(elems));
+	return elems;
+}
+
+void sync_datarefs() {
+	if (!is_connected) {
+		return;
+	}
+
+	string recieved; // This is a dummy string right now, I will implement UDP soon
+	
+	vector<string> dref_value_strings = split(recieved, ' ');
+
+	for (int i = 0; i < dref_value_strings.size(); i++) {
+		auto dref_value_string = dref_value_strings.at(i);
+		auto type = dref_types.at(i);
+		auto dref = drefs.at(i);
+		vector<string> values = split(dref_value_string, '=');
+
+		if (type == xplmType_Int) {
+			auto value = stoi(values[1]);
+			XPLMSetDatai(dref, value);
+		} else if (type == xplmType_Float) {
+			auto value = stof(values[1]);
+			XPLMSetDataf(dref, value);
+		} else if (type == xplmType_Double) {
+			auto value = stod(values[1]);
+			XPLMSetDatad(dref, value);
+		}
+	}
+}
+
+float loop(float elapsed1, float elapsed2, int ctr, void* refcon) {
+	if (running) {
+		if (is_master) {
+			send_datarefs();
+		}
+		else {
+			sync_datarefs();
+		}
+	}
+	return -1;
 }
