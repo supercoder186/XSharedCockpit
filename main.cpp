@@ -7,7 +7,6 @@
 #include "XPLMPlugin.h"
 #include "XPLMUtilities.h"
 #include "XPLMPlanes.h"
-#include "SimpleIni.h"
 
 //Standard libraries
 #include <string>
@@ -15,6 +14,8 @@
 #include <sstream>
 #include <vector>
 #include <iterator>
+#include <fstream>
+#include <regex>
 
 //#if IBM
 //	#include <windows.h>
@@ -27,6 +28,9 @@ using std::size_t;
 using std::istringstream;
 using boost::asio::ip::udp;
 using boost::asio::ip::address;
+using std::ifstream;
+using std::regex;
+using std::smatch;
 
 
 //Using function defs
@@ -130,7 +134,24 @@ PLUGIN_API int XPluginEnable(void) {
 	return 1; 
 }
 
-PLUGIN_API void XPluginReceiveMessage(XPLMPluginID inFrom, int inMsg, void * inParam) {}
+PLUGIN_API void XPluginReceiveMessage(XPLMPluginID inFrom, int inMsg, void * inParam) {
+	if (inMsg == XPLM_MSG_PLANE_LOADED) {
+		load_plugin();
+	}
+}
+
+bool number_contains(int number, int check) {
+	int result = number & check;
+	return result == check;
+}
+
+bool replace(std::string& str, const std::string& from, const std::string& to) {
+	size_t start_pos = str.find(from);
+	if (start_pos == std::string::npos)
+		return false;
+	str.replace(start_pos, from.length(), to);
+	return true;
+}
 
 void load_plugin() {
 	char name[512];
@@ -141,9 +162,74 @@ void load_plugin() {
 	cfg_file_path = cfg_file_path.substr(0, pos);
 	cfg_file_path.append("smartcopilot.cfg");
 	XPLMDebugString(cfg_file_path.c_str());
-	CSimpleIniA ini;
-	ini.SetUnicode();
-	ini.LoadFile(cfg_file_path.c_str());
+	ifstream fin;
+	fin.open(cfg_file_path);
+	string line;
+	string current_section;
+
+	dref_strings.clear();
+	drefs.clear();
+	dref_types.clear();
+
+	dref_strings.push_back("sim/flightmodel/position/local_x");
+	dref_strings.push_back("sim/flightmodel/position/local_y");
+	dref_strings.push_back("sim/flightmodel/position/local_z");
+	dref_strings.push_back("sim/flightmodel/position/psi");
+	dref_strings.push_back("sim/flightmodel/position/theta");
+	dref_strings.push_back("sim/flightmodel/position/phi");
+	dref_strings.push_back("sim/flightmodel/position/P");
+	dref_strings.push_back("sim/flightmodel/position/Q");
+	dref_strings.push_back("sim/flightmodel/position/R");
+	dref_strings.push_back("sim/flightmodel/position/local_vx");
+	dref_strings.push_back("sim/flightmodel/position/local_vy");
+	dref_strings.push_back("sim/flightmodel/position/local_vz");
+
+	while (fin) {
+		getline(fin, line);
+		regex comments("([ ]*[#;]+.*)");
+		regex section_name_exp("^[ ]*\\[(.*)\\][ ]*");
+		regex value_parser("(\\S+)[ ]*=[ ]*(\\S+)");
+		smatch match;
+		if (regex_match(line, comments)) {
+			regex_search(line, match, comments);
+			replace(line, match[0], "");
+		}
+		if (regex_match(line, section_name_exp)) {
+			regex_search(line, match, section_name_exp);
+			current_section = match[1];
+		}
+		else if (regex_match(line, value_parser)) {
+			regex_search(line, match, value_parser);
+			if (current_section == "OVERRIDE") {
+				//TODO add overrides
+			}
+			else if (current_section == "CLICKS") {
+				dref_strings.push_back(match[1].str().append("_scp"));
+			}
+			else if(current_section != "SETUP"){
+				dref_strings.push_back(match[1]);
+			}
+		}
+	}
+
+	int idx = 0;
+	for (auto i : dref_strings) {
+		string output = to_string(idx).append(i).append("\n");
+		XPLMDebugString(output.c_str());
+		idx++;
+	}
+
+	for (auto const& dref_name : dref_strings) {
+		auto values = split_once(dref_name, '[');
+
+		auto name = values[0];
+		auto dref = XPLMFindDataRef(name.c_str());
+		drefs.push_back(dref);
+
+		auto type = XPLMGetDataRefTypes(dref);
+		dref_types.push_back(XPLMGetDataRefTypes(dref));
+	}
+	fin.close();
 }
 
 //My functions
@@ -155,16 +241,6 @@ void menu_handler(void* in_menu_ref, void* in_item_ref) {
 		XPLMDebugString("Toggling slave\n");
 		toggle_slave();
 	}
-}
-
-bool number_contains(int number, int check) {
-	for (int i = 16; i >= 1; i /= 2) {
-		if (number > i && i == check) {
-			return true;
-		}
-	}
-
-	return false;
 }
 
 
@@ -225,7 +301,12 @@ void set_dataref(XPLMDataRef dref, string value_string, XPLMDataTypeID type) {
 	else if (type == xplmType_IntArray) {
 		auto values = split_once(value_string, '=');
 		auto temp = split_once(values[0], '[');
-		int index = stoi(temp.at(1));
+		int index = 0;
+
+		//NEEDS FIXING
+		if (temp[0] != values[0]) {
+			index = stoi(temp.at(1));
+		}
 		int value[1] = { stoi(values[1]) };
 		XPLMSetDatavi(dref, value, index, 1);
 	}
@@ -233,6 +314,7 @@ void set_dataref(XPLMDataRef dref, string value_string, XPLMDataTypeID type) {
 		auto values = split_once(value_string, '=');
 		auto temp = split_once(values[0], '[');
 		int index = stoi(temp.at(1));
+		//NEEDS FIXING SERIOUSLY
 		float value[1] = { stof(values[1]) };
 		XPLMSetDatavf(dref, value, index, 1);
 	}	
@@ -250,13 +332,21 @@ string get_dataref(XPLMDataRef dref, XPLMDataTypeID type, int i) {
 		value = to_string(XPLMGetDatad(dref));
 	}
 	else if (type == xplmType_IntArray) {
-		int index = stoi(split(dref_strings.at(i), '[').at(1));
+		vector<string> after_split = split_once(dref_strings.at(i), '[');
+		int index = 0;
+		if (after_split.size() > 1) 
+			index = stoi(after_split.at(1));
+		
 		int value_arr[1];
 		XPLMGetDatavi(dref, value_arr, index, 1);
 		value = to_string(value[0]);
 	}
 	else if (type == xplmType_FloatArray) {
-		int index = stoi(split(dref_strings.at(i), '[').at(1));
+		vector<string> after_split = split_once(dref_strings.at(i), '[');
+		int index = 0;
+		if (after_split.size() > 1)
+			index = stoi(after_split.at(1));
+
 		float value_arr[1];
 		XPLMGetDatavf(dref, value_arr, index, 1);
 		value = to_string(value[0]);
