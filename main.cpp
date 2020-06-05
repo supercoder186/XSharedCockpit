@@ -32,7 +32,6 @@ using std::ifstream;
 using std::regex;
 using std::smatch;
 
-
 //Using function defs
 using std::to_string;
 using std::copy;
@@ -61,7 +60,6 @@ udp::endpoint master_endpoint{};
 udp::socket slave{ io_service };
 udp::endpoint slave_endpoint;
 
-
 //Constant defs
 const string master_address = "127.0.0.1";
 const int master_port = 49000;
@@ -80,7 +78,6 @@ int toggle_master(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void* inRe
 int toggle_slave(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void* inRefcon);
 vector<string> split_once(string s, const char delimiter);
 
-
 //X-Plane API functions
 PLUGIN_API int XPluginStart(char * outName, char * outSig,	char * outDesc){
 	strcpy(outName, "XSharedCockpit");
@@ -88,7 +85,6 @@ PLUGIN_API int XPluginStart(char * outName, char * outSig,	char * outDesc){
 	strcpy(outDesc, "A plugin to allow you to fly together with your friends");
 
 	XPLMDebugString("XSharedCockpit has started init\n");
-
 
 	auto command = XPLMCreateCommand("XSharedCockpit/toggle_master", "Toggle XSharedCockpit as Master");
 	XPLMRegisterCommandHandler(command, toggle_master, 1, (void*)0);
@@ -99,7 +95,6 @@ PLUGIN_API int XPluginStart(char * outName, char * outSig,	char * outDesc){
 	menu_id = XPLMCreateMenu("Sample Menu", XPLMFindPluginsMenu(), menu_container_index, menu_handler, NULL);
 	XPLMAppendMenuItemWithCommand(menu_id, "Toggle Master", command);
 	XPLMAppendMenuItemWithCommand(menu_id, "Toggle Slave", command2);
-
 
 	dref_strings.push_back("sim/flightmodel/position/local_x");
 	dref_strings.push_back("sim/flightmodel/position/local_y");
@@ -222,7 +217,7 @@ void load_plugin() {
 			else if (current_section == "CLICKS") {
 				dref_strings.push_back(match[1].str().append("_scp"));
 			}
-			else if(current_section != "SETUP" && current_section != "WEATHER" && current_section!="COMMANDS"){
+			else if(current_section != "SETUP" && current_section != "WEATHER" && current_section!="COMMANDS" && current_section != "SLOW"){
 				dref_strings.push_back(match[1]);
 			}
 		}
@@ -277,7 +272,6 @@ void load_plugin() {
 void menu_handler(void* in_menu_ref, void* in_item_ref) {
 
 }
-
 
 std::vector<std::string> split(std::string s, const char delimiter)
 {
@@ -367,7 +361,6 @@ string get_dataref(XPLMDataRef dref, XPLMDataTypeID type, int i) {
 	return value;
 }
 
-
 void send_datarefs() {
 	if (!is_connected) {
 		return;
@@ -385,14 +378,15 @@ void send_datarefs() {
 			dref_string = dref_string
 			.append(value)
 			.append(" ");
-		else
-			dref_string.append(" ");
+		else {
+			XPLMDebugString(string("No value found for ").append(dref_strings.at(i)).append("\n").c_str());
+			dref_string = dref_string.append(" ");
+		}
 	}
 
 	boost::system::error_code err;
 	master.send_to(boost::asio::buffer(dref_string), slave_endpoint, 0, err);
 }
-
 
 void sync_datarefs() {
 	if (!is_connected) {
