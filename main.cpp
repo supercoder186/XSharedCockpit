@@ -52,6 +52,9 @@ XPLMMenuID menu_id;
 vector<string> dref_strings;
 vector <XPLMDataRef> drefs;
 vector <XPLMDataTypeID> dref_types;
+vector <int> indexes;
+vector<string> master_overrides;
+vector<string> slave_overrides;
 boost::asio::io_service io_service;
 udp::socket master{ io_service };
 udp::endpoint master_endpoint{};
@@ -73,8 +76,8 @@ void menu_handler(void*, void*);
 void load_plugin();
 float loop(float elapsed1, float elapsed2, int ctr, void* refcon);
 bool number_contains(int number, int check);
-void toggle_master();
-void toggle_slave();
+int toggle_master(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void* inRefcon);
+int toggle_slave(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void* inRefcon);
 vector<string> split_once(string s, const char delimiter);
 
 
@@ -86,10 +89,16 @@ PLUGIN_API int XPluginStart(char * outName, char * outSig,	char * outDesc){
 
 	XPLMDebugString("XSharedCockpit has started init\n");
 
+
+	auto command = XPLMCreateCommand("XSharedCockpit/toggle_master", "Toggle XSharedCockpit as Master");
+	XPLMRegisterCommandHandler(command, toggle_master, 1, (void*)0);
+	auto command2 = XPLMCreateCommand("XSharedCockpit/toggle_slave", "Toggle XSharedCockpit as Slave");
+	XPLMRegisterCommandHandler(command2, toggle_slave, 1, (void*)0);
+
 	menu_container_index = XPLMAppendMenuItem(XPLMFindPluginsMenu(), "XSharedCockpit", 0, 0);
 	menu_id = XPLMCreateMenu("Sample Menu", XPLMFindPluginsMenu(), menu_container_index, menu_handler, NULL);
-	XPLMAppendMenuItem(menu_id, "Toggle Master", (void*)"Toggle Master", 1);
-	XPLMAppendMenuItem(menu_id, "Toggle Slave", (void*)"Toggle Slave", 1);
+	XPLMAppendMenuItemWithCommand(menu_id, "Toggle Master", command);
+	XPLMAppendMenuItemWithCommand(menu_id, "Toggle Slave", command2);
 
 
 	dref_strings.push_back("sim/flightmodel/position/local_x");
@@ -129,20 +138,21 @@ PLUGIN_API int XPluginEnable(void) {
 		auto type = XPLMGetDataRefTypes(dref);
 		dref_types.push_back(XPLMGetDataRefTypes(dref));
 	}
+	
 
 	XPLMDebugString("XSharedCockpit initialized\n");
 	return 1; 
 }
 
-PLUGIN_API void XPluginReceiveMessage(XPLMPluginID inFrom, int inMsg, void * inParam) {
-	if (inMsg == XPLM_MSG_PLANE_LOADED) {
-		load_plugin();
-	}
-}
+PLUGIN_API void XPluginReceiveMessage(XPLMPluginID inFrom, int inMsg, void * inParam){}
 
 bool number_contains(int number, int check) {
 	int result = number & check;
 	return result == check;
+}
+
+bool string_contains(string s1, string s2) {
+	return s1.find(s2) != std::string::npos;
 }
 
 bool replace(std::string& str, const std::string& from, const std::string& to) {
@@ -201,12 +211,18 @@ void load_plugin() {
 		else if (regex_match(line, value_parser)) {
 			regex_search(line, match, value_parser);
 			if (current_section == "OVERRIDE") {
-				//TODO add overrides
+				int v = stoi(match[2].str());
+				if (number_contains(v, 1)) {
+					master_overrides.push_back(match[1]);
+				}
+				if (number_contains(v, 8)) {
+					slave_overrides.push_back(match[1]);
+				}
 			}
 			else if (current_section == "CLICKS") {
 				dref_strings.push_back(match[1].str().append("_scp"));
 			}
-			else if(current_section != "SETUP"){
+			else if(current_section != "SETUP" && current_section != "WEATHER" && current_section!="COMMANDS"){
 				dref_strings.push_back(match[1]);
 			}
 		}
@@ -219,28 +235,47 @@ void load_plugin() {
 		idx++;
 	}
 
-	for (auto const& dref_name : dref_strings) {
-		auto values = split_once(dref_name, '[');
+	for (auto dref_name : dref_strings) {
+		string name;
+		vector<string> values;
+		if (!string_contains(name, "_FIXED_INDEX_")) {
+			values = split_once(dref_name, '[');
+			name = values[0];
+		}
+		else {
+			name = dref_name;
+			replace(name, "_FIXED_INDEX_", "");
+			values.push_back(name);
+		}
 
-		auto name = values[0];
 		auto dref = XPLMFindDataRef(name.c_str());
 		drefs.push_back(dref);
 
 		auto type = XPLMGetDataRefTypes(dref);
-		dref_types.push_back(XPLMGetDataRefTypes(dref));
+
+		if (type == xplmType_FloatArray || type == xplmType_IntArray) {
+			if (values.size() > 1) {
+				indexes.push_back(stoi(values[1]));
+
+				XPLMDebugString(string("Index: ").append(values[1]).append("\n").c_str());
+			}
+			else {
+				indexes.push_back(0);
+			}
+		}
+		else {
+			indexes.push_back(-1);
+		}
+
+		XPLMDebugString(name.append(": ").append(to_string(type)).append("\n").c_str());
+		dref_types.push_back(type);
 	}
 	fin.close();
 }
 
 //My functions
 void menu_handler(void* in_menu_ref, void* in_item_ref) {
-	if (!strcmp((const char*)in_item_ref, "Toggle Master"))	{
-		toggle_master();
-	}
-	else if (!strcmp((const char*)in_item_ref, "Toggle Slave"))	{
-		XPLMDebugString("Toggling slave\n");
-		toggle_slave();
-	}
+
 }
 
 
@@ -280,42 +315,27 @@ vector<string> split_once(std::string s, const char delimiter) {
 	return output;
 }
 
-void set_dataref(XPLMDataRef dref, string value_string, XPLMDataTypeID type) {
-	XPLMDebugString(to_string(type).append("\n").c_str());
-
+void set_dataref(XPLMDataRef dref, string value_string, XPLMDataTypeID type, int i) {
 	if (type == xplmType_Int) {
-		auto values = split_once(value_string, '=');
-		auto value = stoi(values[1]);
+		auto value = stoi(value_string);
 		XPLMSetDatai(dref, value);
 	}
 	else if (type == xplmType_Float || type == (xplmType_Float | xplmType_Double)) {
-		auto values = split_once(value_string, '=');
-		auto value = stof(values[1]);
+		auto value = stof(value_string);
 		XPLMSetDataf(dref, value);
 	}
 	else if (type == xplmType_Double) {
-		auto values = split_once(value_string, '=');
-		auto value = stod(values[1]);
+		auto value = stod(value_string);
 		XPLMSetDatad(dref, value);
 	}
 	else if (type == xplmType_IntArray) {
-		auto values = split_once(value_string, '=');
-		auto temp = split_once(values[0], '[');
-		int index = 0;
-
-		//NEEDS FIXING
-		if (temp[0] != values[0]) {
-			index = stoi(temp.at(1));
-		}
-		int value[1] = { stoi(values[1]) };
+		int index = indexes.at(i);
+		int value[1] = { stoi(value_string) };
 		XPLMSetDatavi(dref, value, index, 1);
 	}
 	else if (type == xplmType_FloatArray) {
-		auto values = split_once(value_string, '=');
-		auto temp = split_once(values[0], '[');
-		int index = stoi(temp.at(1));
-		//NEEDS FIXING SERIOUSLY
-		float value[1] = { stof(values[1]) };
+		int index = indexes.at(i);
+		float value[1] = { stof(value_string) };
 		XPLMSetDatavf(dref, value, index, 1);
 	}	
 }
@@ -332,24 +352,16 @@ string get_dataref(XPLMDataRef dref, XPLMDataTypeID type, int i) {
 		value = to_string(XPLMGetDatad(dref));
 	}
 	else if (type == xplmType_IntArray) {
-		vector<string> after_split = split_once(dref_strings.at(i), '[');
-		int index = 0;
-		if (after_split.size() > 1) 
-			index = stoi(after_split.at(1));
-		
+		int index = indexes.at(i);
 		int value_arr[1];
 		XPLMGetDatavi(dref, value_arr, index, 1);
-		value = to_string(value[0]);
+		value = to_string(value_arr[0]);
 	}
 	else if (type == xplmType_FloatArray) {
-		vector<string> after_split = split_once(dref_strings.at(i), '[');
-		int index = 0;
-		if (after_split.size() > 1)
-			index = stoi(after_split.at(1));
-
+		int index = indexes.at(i);
 		float value_arr[1];
 		XPLMGetDatavf(dref, value_arr, index, 1);
-		value = to_string(value[0]);
+		value = to_string(value_arr[0]);
 	}
 
 	return value;
@@ -369,12 +381,12 @@ void send_datarefs() {
 
 		string value = get_dataref(dref, type, i);
 
-		if (!value.empty()) 
+		if (!value.empty())
 			dref_string = dref_string
-				.append(to_string(i))
-				.append("=")
-				.append(value)
-				.append(" ");
+			.append(value)
+			.append(" ");
+		else
+			dref_string.append(" ");
 	}
 
 	boost::system::error_code err;
@@ -398,28 +410,58 @@ void sync_datarefs() {
 
 	string received(buffer);
 	received = received.substr(0, bytes_transferred);
-	XPLMDebugString(received.c_str());
-	XPLMDebugString("\n");
 
-	XPLMDebugString("Splitting the string\n");
 	vector<string> dref_value_strings = split(received, ' ');
-	XPLMDebugString(to_string(dref_value_strings.size()).c_str());
 
 	for (int i = 0; i < dref_value_strings.size(); i++) {
-		XPLMDebugString(to_string(i).c_str());
-		XPLMDebugString("\n");
 		auto dref_value_string = dref_value_strings.at(i);
-		auto type = dref_types.at(i);
-		auto dref = drefs.at(i);
-		XPLMDebugString(dref_value_string.c_str());
-		XPLMDebugString("\nSetting the dataref value Type: ");
-		set_dataref(dref, dref_value_string, type);
+		if (!dref_value_string.empty()) {
+			auto type = dref_types.at(i);
+			auto dref = drefs.at(i);
+			set_dataref(dref, dref_value_string, type, i);
+		}
+	}
+}
+
+void set_overrides() {
+	if (is_master) {
+		for (auto ovrd : master_overrides) {
+			XPLMDebugString(ovrd.append("\n").c_str());
+			XPLMDebugString(to_string((int)running).append("\n").c_str());
+			auto values = split_once(ovrd, '[');
+			if (values.size() > 1) {
+				int index = stoi(values[1]);
+				XPLMDebugString(to_string(index).c_str());
+				int value[1] = { running };
+				XPLMSetDatavi(XPLMFindDataRef(values[0].c_str()), value, index, 1);
+			}
+			else {
+				XPLMSetDatai(XPLMFindDataRef(ovrd.c_str()), running);
+			}
+		}
+	}
+	else {
+		for (auto ovrd : slave_overrides) {
+			XPLMDebugString(ovrd.append("\n").c_str());
+			XPLMDebugString(to_string((int)running).append("\n").c_str());
+			auto values = split_once(ovrd, '[');
+			if (values.size() > 1) {
+				int index = stoi(values[1]);
+				int value[1] = { running };
+				XPLMSetDatavi(XPLMFindDataRef(values[0].c_str()), value, index, 1);
+			}
+			else {
+				XPLMSetDatai(XPLMFindDataRef(ovrd.c_str()), running);
+			}
+		}
 	}
 }
 
 void start_master() {
 	is_master = true;
 	running = true;
+	load_plugin();
+	set_overrides();
 	XPLMDebugString("Declaring socket and endpoints\n");
 	master = udp::socket(io_service);
 	master_endpoint = udp::endpoint(address::from_string(master_address), master_port);
@@ -439,18 +481,21 @@ void stop_master() {
 	master.close();
 	is_connected = false;
 	running = false;
+	set_overrides();
 }
 
 void start_slave() {
-	auto type = XPLMGetDataRefTypes(XPLMFindDataRef("sim/operation/override/override_planepath[0]"));
 	is_master = false;
 	running = true;
+	load_plugin();
+	set_overrides();
 	slave = udp::socket(io_service);
 	master_endpoint = udp::endpoint(address::from_string(master_address), master_port);
 	slave_endpoint = udp::endpoint(address::from_string(slave_address), slave_port);
 	slave.open(udp::v4());
 	slave.bind(slave_endpoint);
-	set_dataref(XPLMFindDataRef("sim/operation/override/override_planepath"), "sim/operation/override/override_planepath[0]=1", xplmType_IntArray);
+	int value[1] = { 1 };
+	XPLMSetDatavi(XPLMFindDataRef("sim/operation/override/override_planepath"), value, 0, 1);
 	XPLMDebugString("Override has been set\n");
 	is_connected = true;
 	XPLMRegisterFlightLoopCallback(loop, 2, NULL);
@@ -460,27 +505,35 @@ void stop_slave() {
 	XPLMUnregisterFlightLoopCallback(loop, NULL);
 	slave.close();
 	XPLMDebugString("Disabling flight path override\n");
-	set_dataref(XPLMFindDataRef("sim/operation/override/override_planepath"), "sim/operation/override/override_planepath[0]=0", xplmType_IntArray);
+	int value[1] = { 0 };
+	XPLMSetDatavi(XPLMFindDataRef("sim/operation/override/override_planepath"), value, 0, 1);
 	is_connected = false;
 	running = false;
+	set_overrides();
 }
 
-void toggle_master() {
-	if (!running) {
-		start_master();
+int toggle_master(XPLMCommandRef inCommand,	XPLMCommandPhase inPhase, void* inRefcon){
+	if (inPhase == xplm_CommandEnd) {
+		if (!running) {
+			start_master();
+		}
+		else if (running && is_master) {
+			stop_master();
+		}
 	}
-	else if (running && is_master) {
-		stop_master();
-	}
+	return 1;
 }
 
-void toggle_slave() {
-	if (!running) {
-		start_slave();
+int toggle_slave(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void* inRefcon) {
+	if (inPhase == xplm_CommandEnd) {
+		if (!running) {
+			start_slave();
+		}
+		else if (running && !is_master) {
+			stop_slave();
+		}
 	}
-	else if (running && !is_master) {
-		stop_slave();
-	}
+	return 1;
 }
 
 float loop(float elapsed1, float elapsed2, int ctr, void* refcon) {
