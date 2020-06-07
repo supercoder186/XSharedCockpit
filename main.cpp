@@ -165,7 +165,7 @@ void load_plugin() {
 	string cfg_file_path(path);
 	size_t pos = cfg_file_path.find(name);
 	cfg_file_path = cfg_file_path.substr(0, pos);
-	cfg_file_path.append("smartcopilot.cfg");
+	cfg_file_path.append("xsharedcockpit.cfg");
 	XPLMDebugString(cfg_file_path.c_str());
 	ifstream fin;
 	fin.open(cfg_file_path);
