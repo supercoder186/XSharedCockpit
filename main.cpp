@@ -11,9 +11,8 @@
 //Standard libraries
 #include <string>
 #include <cstring>
-#include <sstream>
 #include <vector>
-#include <iterator>
+#include <map>
 #include <fstream>
 #include <regex>
 
@@ -54,20 +53,24 @@ vector <XPLMDataTypeID> dref_types;
 vector <int> indexes;
 vector<string> master_overrides;
 vector<string> slave_overrides;
+vector<string> command_strings;
+vector<XPLMCommandRef> commands;
+vector<void*> command_pointers;
+string command_string;
+bool running = false;
+bool is_master = false;
+bool is_connected = false;
+string master_address = "127.0.0.1";
+int master_port = 49000;
+string slave_address = "127.0.0.1";
+int slave_port = 49001;
+
 boost::asio::io_service io_service;
 udp::socket master{ io_service };
 udp::endpoint master_endpoint{};
 udp::socket slave{ io_service };
 udp::endpoint slave_endpoint;
 
-//Constant defs
-const string master_address = "127.0.0.1";
-const int master_port = 49000;
-const string slave_address = "127.0.0.1";
-const int slave_port = 49001;
-bool running = false;
-bool is_master = false;
-bool is_connected = false;
 
 //Function defs
 void menu_handler(void*, void*);
@@ -76,6 +79,7 @@ float loop(float elapsed1, float elapsed2, int ctr, void* refcon);
 bool number_contains(int number, int check);
 int toggle_master(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void* inRefcon);
 int toggle_slave(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void* inRefcon);
+int command_handler(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void* inRefcon);
 vector<string> split_once(string s, const char delimiter);
 
 //X-Plane API functions
@@ -147,12 +151,12 @@ bool number_contains(int number, int check) {
 }
 
 bool string_contains(string s1, string s2) {
-	return s1.find(s2) != std::string::npos;
+	return s1.find(s2) != string::npos;
 }
 
-bool replace(std::string& str, const std::string& from, const std::string& to) {
+bool replace(string& str, const string& from, const string& to) {
 	size_t start_pos = str.find(from);
-	if (start_pos == std::string::npos)
+	if (start_pos == string::npos)
 		return false;
 	str.replace(start_pos, from.length(), to);
 	return true;
@@ -166,7 +170,6 @@ void load_plugin() {
 	size_t pos = cfg_file_path.find(name);
 	cfg_file_path = cfg_file_path.substr(0, pos);
 	cfg_file_path.append("xsharedcockpit.cfg");
-	XPLMDebugString(cfg_file_path.c_str());
 	ifstream fin;
 	fin.open(cfg_file_path);
 	string line;
@@ -175,6 +178,13 @@ void load_plugin() {
 	dref_strings.clear();
 	drefs.clear();
 	dref_types.clear();
+	commands.clear();
+	command_strings.clear();
+	command_pointers.clear();
+	indexes.clear();
+	master_overrides.clear();
+	slave_overrides.clear();
+	command_string = "";
 
 	dref_strings.push_back("sim/flightmodel/position/local_x");
 	dref_strings.push_back("sim/flightmodel/position/local_y");
@@ -215,20 +225,40 @@ void load_plugin() {
 				}
 			}
 			else if (current_section == "CLICKS") {
-				dref_strings.push_back(match[1].str().append("_scp"));
+				dref_strings.push_back(match[1].str().append("_SCP"));
 			}
-			else if(current_section != "SETUP" && current_section != "WEATHER" && current_section!="COMMANDS" && current_section != "SLOW"){
+			else if (current_section == "COMMANDS") {
+				command_strings.push_back(match[1]);
+			}
+			else if (current_section == "SETUP") {
+				auto name = match[1].str();
+				if (name == "MASTER_ADDRESS") {
+					XPLMDebugString("Master address set to ");
+					XPLMDebugString(match[2].str().append("\n").c_str());
+					master_address = match[2];
+				}
+				else if (name == "SLAVE_ADDRESS") {
+					XPLMDebugString("Slave address set to ");
+					XPLMDebugString(match[2].str().append("\n").c_str());
+					slave_address = match[2];
+				}
+				else if (name == "MASTER_PORT") {
+					XPLMDebugString("Master port set to ");
+					XPLMDebugString(match[2].str().append("\n").c_str());
+					master_port = stoi(match[2]);
+				}
+				else if (name == "SLAVE_PORT") {
+					XPLMDebugString("Slave address set to ");
+					XPLMDebugString(match[2].str().append("\n").c_str());
+					slave_port = stoi(match[2]);
+				}
+			}
+			else if(current_section != "WEATHER" && current_section != "SLOW"){
 				dref_strings.push_back(match[1]);
 			}
 		}
 	}
-
-	int idx = 0;
-	for (auto i : dref_strings) {
-		string output = to_string(idx).append(i).append("\n");
-		XPLMDebugString(output.c_str());
-		idx++;
-	}
+	fin.close();
 
 	for (auto dref_name : dref_strings) {
 		string name;
@@ -251,8 +281,6 @@ void load_plugin() {
 		if (type == xplmType_FloatArray || type == xplmType_IntArray) {
 			if (values.size() > 1) {
 				indexes.push_back(stoi(values[1]));
-
-				XPLMDebugString(string("Index: ").append(values[1]).append("\n").c_str());
 			}
 			else {
 				indexes.push_back(0);
@@ -261,32 +289,45 @@ void load_plugin() {
 		else {
 			indexes.push_back(-1);
 		}
-
-		XPLMDebugString(name.append(": ").append(to_string(type)).append("\n").c_str());
 		dref_types.push_back(type);
 	}
-	fin.close();
+
+	int idx = 0;
+	for (auto i : command_strings) {
+		auto command = XPLMFindCommand(i.c_str());
+		void* pointer = (void*) new string(to_string(idx));
+		command_pointers.push_back(pointer);
+
+		commands.push_back(command);
+		if (is_master) {
+			XPLMRegisterCommandHandler(command, command_handler, true, pointer);
+		}
+		idx++;
+	}
+
+
 }
 
-//My functions
+//Menu handler
 void menu_handler(void* in_menu_ref, void* in_item_ref) {
 
 }
 
-std::vector<std::string> split(std::string s, const char delimiter)
+//My functions
+vector<string> split(string s, const char delimiter)
 {
 	size_t start = 0;
 	size_t end = s.find_first_of(delimiter);
 
-	std::vector<std::string> output;
+	vector<string> output;
 
-	while (end <= std::string::npos)
+	while (end <= string::npos)
 	{
 		string sub = s.substr(start, end - start);
 		if (!sub.empty())
 			output.emplace_back(sub);
 
-		if (end == std::string::npos)
+		if (end == string::npos)
 			break;
 
 		start = end + 1;
@@ -296,7 +337,7 @@ std::vector<std::string> split(std::string s, const char delimiter)
 	return output;
 }
 
-vector<string> split_once(std::string s, const char delimiter) {
+vector<string> split_once(string s, const char delimiter) {
 	vector<string> output;
 	auto delimiter_pos = s.find(delimiter);
 	if (delimiter_pos > s.size()) {
@@ -384,6 +425,9 @@ void send_datarefs() {
 		}
 	}
 
+	dref_string = dref_string.append(command_string);
+	command_string = ",";
+
 	boost::system::error_code err;
 	master.send_to(boost::asio::buffer(dref_string), slave_endpoint, 0, err);
 }
@@ -407,7 +451,7 @@ void sync_datarefs() {
 
 	vector<string> dref_value_strings = split(received, ' ');
 
-	for (int i = 0; i < dref_value_strings.size(); i++) {
+	for (int i = 0; i < dref_value_strings.size() - 1; i++) {
 		auto dref_value_string = dref_value_strings.at(i);
 		if (!dref_value_string.empty()) {
 			auto type = dref_types.at(i);
@@ -415,13 +459,25 @@ void sync_datarefs() {
 			set_dataref(dref, dref_value_string, type, i);
 		}
 	}
+	
+	vector<string> command_value_strings = split(dref_value_strings.at(dref_value_strings.size() - 1), ',');
+	for (int i = 0; i < command_value_strings.size(); i++) {
+		string j = command_value_strings[i];
+		size_t length = j.length();
+		int idx = stoi(j.substr(0, length - 1));
+		int phase = stoi(j.substr(length - 1, length));
+		if (phase == 0) {
+			XPLMCommandBegin(commands[idx]);
+		}
+		else if (phase == 2) {
+			XPLMCommandEnd(commands[idx]);
+		}
+	}
 }
 
 void set_overrides() {
 	if (is_master) {
 		for (auto ovrd : master_overrides) {
-			XPLMDebugString(ovrd.append("\n").c_str());
-			XPLMDebugString(to_string((int)running).append("\n").c_str());
 			auto values = split_once(ovrd, '[');
 			if (values.size() > 1) {
 				int index = stoi(values[1]);
@@ -436,8 +492,6 @@ void set_overrides() {
 	}
 	else {
 		for (auto ovrd : slave_overrides) {
-			XPLMDebugString(ovrd.append("\n").c_str());
-			XPLMDebugString(to_string((int)running).append("\n").c_str());
 			auto values = split_once(ovrd, '[');
 			if (values.size() > 1) {
 				int index = stoi(values[1]);
@@ -456,11 +510,9 @@ void start_master() {
 	running = true;
 	load_plugin();
 	set_overrides();
-	XPLMDebugString("Declaring socket and endpoints\n");
 	master = udp::socket(io_service);
 	master_endpoint = udp::endpoint(address::from_string(master_address), master_port);
 	slave_endpoint = udp::endpoint(address::from_string(slave_address), slave_port);
-	XPLMDebugString("Opening and binding socket\n");
 	master.open(udp::v4());
 	master.bind(master_endpoint);
 	is_connected = true;
@@ -476,6 +528,12 @@ void stop_master() {
 	is_connected = false;
 	running = false;
 	set_overrides();
+
+	int idx = 0;
+	for (auto i : commands) {
+		XPLMUnregisterCommandHandler(i, command_handler, true, command_pointers[idx]);
+		idx++;
+	}
 }
 
 void start_slave() {
@@ -490,7 +548,6 @@ void start_slave() {
 	slave.bind(slave_endpoint);
 	int value[1] = { 1 };
 	XPLMSetDatavi(XPLMFindDataRef("sim/operation/override/override_planepath"), value, 0, 1);
-	XPLMDebugString("Override has been set\n");
 	is_connected = true;
 	XPLMRegisterFlightLoopCallback(loop, 2, NULL);
 }
@@ -498,7 +555,6 @@ void start_slave() {
 void stop_slave() {
 	XPLMUnregisterFlightLoopCallback(loop, NULL);
 	slave.close();
-	XPLMDebugString("Disabling flight path override\n");
 	int value[1] = { 0 };
 	XPLMSetDatavi(XPLMFindDataRef("sim/operation/override/override_planepath"), value, 0, 1);
 	is_connected = false;
@@ -506,6 +562,7 @@ void stop_slave() {
 	set_overrides();
 }
 
+//Command handlers
 int toggle_master(XPLMCommandRef inCommand,	XPLMCommandPhase inPhase, void* inRefcon){
 	if (inPhase == xplm_CommandEnd) {
 		if (!running) {
@@ -530,6 +587,15 @@ int toggle_slave(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void* inRef
 	return 1;
 }
 
+int command_handler(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void* inRefcon) {
+	if (inPhase == xplm_CommandBegin || inPhase == xplm_CommandEnd) {
+		string* sp = static_cast<string*>(inRefcon);
+		command_string = command_string.append(*sp).append(to_string(inPhase)).append(",");
+	}
+	return 1;
+}
+
+//Loop callback
 float loop(float elapsed1, float elapsed2, int ctr, void* refcon) {
 	if (running) {
 		if (is_master) {
