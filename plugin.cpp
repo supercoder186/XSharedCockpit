@@ -148,7 +148,6 @@ PLUGIN_API int XPluginEnable(void) {
         auto dref = XPLMFindDataRef(name.c_str());
         master_drefs.push_back(dref);
 
-        auto type = XPLMGetDataRefTypes(dref);
         master_dref_types.push_back(XPLMGetDataRefTypes(dref));
     }
 
@@ -464,7 +463,7 @@ void send_datarefs() {
     vector<XPLMDataRef> drefs = (is_master) ? master_drefs : slave_drefs;
     vector<XPLMDataTypeID> dref_types = (is_master) ? master_dref_types : slave_dref_types;
 
-    for (int i = 0; i < drefs.size(); i++) {
+    for (unsigned long long i = 0; i < drefs.size(); i++) {
         XPLMDataTypeID type = dref_types.at(i);
         auto dref = drefs.at(i);
 
@@ -509,7 +508,7 @@ void sync_datarefs() {
     vector<XPLMDataTypeID> dref_types = (is_master) ? slave_dref_types : master_dref_types;
     vector<XPLMDataRef> drefs = (is_master) ? slave_drefs : master_drefs;
 
-    for (int i = 0; i < dref_value_strings.size() - 1; i++) {
+    for (unsigned long long i = 0; i < dref_value_strings.size() - 1; i++) {
         auto dref_value_string = dref_value_strings.at(i);
         if (!dref_value_string.empty()) {
             auto type = dref_types.at(i);
@@ -519,7 +518,7 @@ void sync_datarefs() {
     }
 
     vector<string> command_value_strings = split(dref_value_strings.at(dref_value_strings.size() - 1), ',');
-    for (int i = 0; i < command_value_strings.size(); i++) {
+    for (unsigned long long i = 0; i < command_value_strings.size(); i++) {
         string j = command_value_strings[i];
         size_t length = j.length();
         int idx = stoi(j.substr(0, length - 1));
