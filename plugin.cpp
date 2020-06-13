@@ -75,7 +75,6 @@ udp::endpoint master_endpoint{};
 udp::socket slave{ io_service };
 udp::endpoint slave_endpoint;
 
-
 //Function defs
 void menu_handler(void*, void*);
 void load_plugin();
@@ -159,7 +158,7 @@ PLUGIN_API int XPluginEnable(void) {
     return 1;
 }
 
-PLUGIN_API void XPluginReceiveMessage(XPLMPluginID inFrom, int inMsg, void * inParam){}
+PLUGIN_API void XPluginReceiveMessage(XPLMPluginID, int, void *){}
 
 bool number_contains(int number, int check) {
     int result = number & check;
@@ -359,7 +358,7 @@ void load_plugin() {
 }
 
 //Dummy menu handler
-void menu_handler(void* in_menu_ref, void* in_item_ref) {
+void menu_handler(void*, void*) {
 
 }
 
@@ -623,16 +622,16 @@ void stop_slave() {
 }
 
 //Dataref callbacks
-int get_state(void* inRefCon){
+int get_state(void*){
     return running ? !is_master + 1 : 0;
 }
 
-void set_state(void* inRefCon, int inValue){
+void set_state(void*, int){
     //This is just a dummy callback, since the value of the dataref is calculated when it is retrieved
 }
 
 //Command handlers
-int toggle_master(XPLMCommandRef inCommand,	XPLMCommandPhase inPhase, void* inRefcon){
+int toggle_master(XPLMCommandRef,	XPLMCommandPhase inPhase, void*){
     if (inPhase == xplm_CommandEnd) {
         if (!running) {
             start_master();
@@ -644,7 +643,7 @@ int toggle_master(XPLMCommandRef inCommand,	XPLMCommandPhase inPhase, void* inRe
     return 1;
 }
 
-int toggle_slave(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void* inRefcon) {
+int toggle_slave(XPLMCommandRef, XPLMCommandPhase inPhase, void*) {
     if (inPhase == xplm_CommandEnd) {
         if (!running) {
             start_slave();
@@ -656,7 +655,7 @@ int toggle_slave(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void* inRef
     return 1;
 }
 
-int command_handler(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void* inRefcon) {
+int command_handler(XPLMCommandRef, XPLMCommandPhase inPhase, void* inRefcon) {
     if (inPhase == xplm_CommandBegin || inPhase == xplm_CommandEnd) {
         string* sp = static_cast<string*>(inRefcon);
         command_string = command_string.append(*sp).append(to_string(inPhase)).append(",");
@@ -665,7 +664,7 @@ int command_handler(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void* in
 }
 
 //Loop callback
-float loop(float elapsed1, float elapsed2, int ctr, void* refcon) {
+float loop(float, float, int, void*) {
     if (running) {
         send_datarefs();
         sync_datarefs();
