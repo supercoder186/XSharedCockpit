@@ -15,10 +15,6 @@
 #include <fstream>
 #include <regex>
 
-#if IBM
-    #include <windows.h>
-#endif
-
 //Using object defs
 using std::vector;
 using std::string;
@@ -42,6 +38,9 @@ using std::getline;
 
 //Namespace using defs
 using namespace boost::placeholders;
+
+//Constant defs
+const char STATE_DATAREF_STRING[] = "xsharedcockpit/state";
 
 //Variable defs
 int menu_container_index;
@@ -88,6 +87,8 @@ int toggle_slave(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void* inRef
 void stop_slave();
 int command_handler(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void* inRefcon);
 vector<string> split_once(string s, const char delimiter);
+int get_state(void* inRefCon);
+void set_state(void* inRefCon, int inValue);
 
 //X-Plane API functions
 PLUGIN_API int XPluginStart(char * outName, char * outSig,	char * outDesc){
@@ -119,6 +120,8 @@ PLUGIN_API int XPluginStart(char * outName, char * outSig,	char * outDesc){
     master_dref_strings.push_back("sim/flightmodel/position/local_vx");
     master_dref_strings.push_back("sim/flightmodel/position/local_vy");
     master_dref_strings.push_back("sim/flightmodel/position/local_vz");
+
+    XPLMRegisterDataAccessor(STATE_DATAREF_STRING, xplmType_Int, 1, get_state, set_state, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
 
     XPLMDebugString("XSharedCockpit has started\n");
     return 1;
@@ -617,6 +620,15 @@ void stop_slave() {
     is_connected = false;
     running = false;
     set_overrides();
+}
+
+//Dataref callbacks
+int get_state(void* inRefCon){
+    return running ? !is_master + 1 : 0;
+}
+
+void set_state(void* inRefCon, int inValue){
+    //This is just a dummy callback, since the value of the dataref is calculated when it is retrieved
 }
 
 //Command handlers
