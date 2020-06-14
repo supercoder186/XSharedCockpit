@@ -271,14 +271,14 @@ void load_plugin() {
             else if (current_section == "TRIGGERS" || current_section == "TRANSPONDER") {
                 string dref_name = match[1];
                 if(XPLMIsDataRefGood(XPLMFindDataRef(dref_name.c_str()))){
-                    master_dref_strings.push_back(match[1]);
-                    slave_dref_strings.push_back(match[1]);
+                    master_dref_strings.push_back(dref_name);
+                    slave_dref_strings.push_back(dref_name);
                 }
             }
             else if(current_section == "CONTINUED" || current_section == "SEND_BACK"){
                 string dref_name = match[1];
                 if(XPLMIsDataRefGood(XPLMFindDataRef(dref_name.c_str())))
-                    master_dref_strings.push_back(match[1]);
+                    master_dref_strings.push_back(dref_name);
             }
         }
     }
