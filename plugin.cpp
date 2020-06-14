@@ -269,11 +269,16 @@ void load_plugin() {
                 }
             }
             else if (current_section == "TRIGGERS" || current_section == "TRANSPONDER") {
-                master_dref_strings.push_back(match[1]);
-                slave_dref_strings.push_back(match[1]);
+                string dref_name = match[1];
+                if(XPLMIsDataRefGood(XPLMFindDataRef(dref_name.c_str()))){
+                    master_dref_strings.push_back(match[1]);
+                    slave_dref_strings.push_back(match[1]);
+                }
             }
             else if(current_section == "CONTINUED" || current_section == "SEND_BACK"){
-                master_dref_strings.push_back(match[1]);
+                string dref_name = match[1];
+                if(XPLMIsDataRefGood(XPLMFindDataRef(dref_name.c_str())))
+                    master_dref_strings.push_back(match[1]);
             }
         }
     }

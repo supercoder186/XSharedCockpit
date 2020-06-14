@@ -4,7 +4,7 @@ QT -= gui core
 CONFIG += warn_on plugin c++11
 CONFIG -= thread qt rtti debug_and_release_target
 
-VERSION = 1.0.0
+VERSION = 1.3.0
 
 DEFINES += XPLM200
 DEFINES += XPLM210
@@ -17,13 +17,13 @@ debug {
     CONFIG += release
 }
 
-INCLUDEPATH += "F:/Programming/X-Plane/SDK/CHeaders/XPLM"
-INCLUDEPATH += "F:/Programming/X-Plane/SDK/CHeaders/Wrappers"
-INCLUDEPATH += "F:/Programming/X-Plane/SDK/CHeaders/Widgets"
-INCLUDEPATH += "F:/Programming/X-Plane/boost_1_73_0"
+INCLUDEPATH += "lib/SDK/CHeaders/XPLM"
+INCLUDEPATH += "lib/SDK/CHeaders/Wrappers"
+INCLUDEPATH += "lib/SDK/CHeaders/Widgets"
+INCLUDEPATH += "lib/boost_1_73_0"
 
 win32 {
-    LIBS += -L"F:/Programming/X-Plane/SDK/Libraries/Win"
+    LIBS += -L"lib/SDK/Libraries/Win"
     LIBS += -lXPLM_64 -lXPWidgets_64
     LIBS += -lws2_32
     DEFINES += APL=0 IBM=1 LIN=0
