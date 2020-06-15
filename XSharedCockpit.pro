@@ -23,8 +23,9 @@ INCLUDEPATH += "lib/SDK/CHeaders/Widgets"
 INCLUDEPATH += "lib/boost_1_73_0"
 
 win32 {
-    LIBS += -L"lib/SDK/Libraries/Win"
-    LIBS += -lXPLM_64 -lXPWidgets_64
+    LIBS += -L"F:/Programming/X-Plane/XSharedCockpit/lib/SDK/Libraries/Win"
+    LIBS += -lXPLM_64
+    LIBS += -lXPWidgets_64
     LIBS += -lws2_32
     DEFINES += APL=0 IBM=1 LIN=0
     TARGET = win
@@ -34,6 +35,7 @@ win32 {
 unix:!macx {
     CONFIG += no_plugin_name_prefix
     DEFINES += APL=0 IBM=0 LIN=1
+    TARGET = lin
     QMAKE_EXTENSION_SHLIB = xpl
     QMAKE_CXXFLAGS += -fvisibility=hidden -shared -rdynamic -nodefaultlibs -undefined_warning
 }

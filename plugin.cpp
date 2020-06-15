@@ -476,13 +476,15 @@ void send_datarefs() {
 
         string value = get_dataref(dref, type, i);
 
-        dref_string = dref_string
+        dref_string
             .append(value)
             .append(" ");
     }
 
-    dref_string = dref_string.append(command_string);
+    dref_string.append(command_string);
     command_string = ",";
+
+    XPLMDebugString("Sending the dataref string");
 
     boost::system::error_code err;
     if (is_master) {
@@ -505,6 +507,8 @@ void sync_datarefs() {
         return;
     }
 
+    XPLMDebugString("Data is available");
+
     char* buffer = new char[available];
     size_t bytes_transferred = (is_master) ? master.receive_from(boost::asio::buffer(buffer, available), receive_endpoint) : slave.receive_from(boost::asio::buffer(buffer, available), receive_endpoint);
 
@@ -514,6 +518,8 @@ void sync_datarefs() {
     vector<string> dref_value_strings = split(received, ' ');
     vector<XPLMDataTypeID> dref_types = (is_master) ? slave_dref_types : master_dref_types;
     vector<XPLMDataRef> drefs = (is_master) ? slave_drefs : master_drefs;
+
+    XPLMDebugString("Parsing data");
 
     for (unsigned long long i = 0; i < dref_value_strings.size() - 1; i++) {
         auto dref_value_string = dref_value_strings.at(i);
@@ -601,18 +607,25 @@ void stop_master() {
 }
 
 void start_slave() {
+    XPLMDebugString("Starting slave");
     is_master = false;
     running = true;
+    XPLMDebugString("Loading plugin");
     load_plugin();
     set_overrides();
+    XPLMDebugString("Initializing socket");
     slave = udp::socket(io_service);
+    XPLMDebugString("Declaring endpoints");
     master_endpoint = udp::endpoint(address::from_string(master_address), master_port);
     slave_endpoint = udp::endpoint(address::from_string(slave_address), slave_port);
+    XPLMDebugString("Opening socket");
     slave.open(udp::v4());
+    XPLMDebugString("Binding to endpoint");
     slave.bind(slave_endpoint);
     int value[1] = { 1 };
     XPLMSetDatavi(XPLMFindDataRef("sim/operation/override/override_planepath"), value, 0, 1);
     is_connected = true;
+    XPLMDebugString("Registering flight loop callback");
     XPLMRegisterFlightLoopCallback(loop, 2, NULL);
 }
 
@@ -663,7 +676,7 @@ int toggle_slave(XPLMCommandRef, XPLMCommandPhase inPhase, void*) {
 int command_handler(XPLMCommandRef, XPLMCommandPhase inPhase, void* inRefcon) {
     if (inPhase == xplm_CommandBegin || inPhase == xplm_CommandEnd) {
         string* sp = static_cast<string*>(inRefcon);
-        command_string = command_string.append(*sp).append(to_string(inPhase)).append(",");
+        command_string.append(*sp).append(to_string(inPhase)).append(",");
     }
     return 1;
 }
