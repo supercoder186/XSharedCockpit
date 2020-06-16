@@ -607,25 +607,34 @@ void stop_master() {
 }
 
 void start_slave() {
-    XPLMDebugString("Starting slave");
+    XPLMDebugString("Starting slave\n");
     is_master = false;
     running = true;
-    XPLMDebugString("Loading plugin");
+    XPLMDebugString("Loading plugin\n");
     load_plugin();
     set_overrides();
-    XPLMDebugString("Initializing socket");
+    XPLMDebugString("Initializing socket\n");
     slave = udp::socket(io_service);
-    XPLMDebugString("Declaring endpoints");
+    XPLMDebugString("Declaring endpoints\n");
     master_endpoint = udp::endpoint(address::from_string(master_address), master_port);
     slave_endpoint = udp::endpoint(address::from_string(slave_address), slave_port);
-    XPLMDebugString("Opening socket");
+    XPLMDebugString("Opening socket\n");
     slave.open(udp::v4());
-    XPLMDebugString("Binding to endpoint");
-    slave.bind(slave_endpoint);
-    int value[1] = { 1 };
-    XPLMSetDatavi(XPLMFindDataRef("sim/operation/override/override_planepath"), value, 0, 1);
-    is_connected = true;
-    XPLMDebugString("Registering flight loop callback");
+    XPLMDebugString("Binding to endpoint\n");
+    try{
+        slave.bind(slave_endpoint);
+        int value[1] = { 1 };
+        XPLMSetDatavi(XPLMFindDataRef("sim/operation/override/override_planepath"), value, 0, 1);
+        is_connected = true;
+    }catch(const char* msg){
+        XPLMDebugString(msg);
+        XPLMDebugString("\n");
+        XPLMSpeakString("Error occurred. Cancelling slave initialisation");
+        running = false;
+        return;
+    }
+
+    XPLMDebugString("Registering flight loop callback\n");
     XPLMRegisterFlightLoopCallback(loop, 2, NULL);
 }
 
