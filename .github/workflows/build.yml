@@ -56,7 +56,7 @@ jobs:
     - name: Build
       shell: bash
       run: |
-        cmake -B build -DXSDK_DIR=lib/SDK -DBOOST_ROOT=$BOOST_ROOT_1_72_0
+        cmake -B build -DXSDK_DIR=lib/SDK -DBOOST_ROOT=$BOOST_ROOT_1_72_0 -G "MinGW Makefiles" -DCMAKE_MAKE_PROGRAM=mingw32-make
         cmake --build build
         cmake --install build --prefix dist
         
