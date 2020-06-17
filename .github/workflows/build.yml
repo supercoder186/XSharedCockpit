@@ -27,7 +27,7 @@ jobs:
       run: |
         cmake -B build -DXSDK_DIR=lib/SDK
         cmake --build build
-        cmake --install build
+        cmake --install build --prefix dist
         
     - name: Upload
       if: github.event == 'release'
@@ -56,10 +56,9 @@ jobs:
     - name: Build
       shell: bash
       run: |
-        BOOST_ROOT=$BOOST_ROOT_1_72_0
-        cmake -B build -DXSDK_DIR=lib/SDK
+        cmake -B build -DXSDK_DIR=lib/SDK -DBOOST_ROOT=$BOOST_ROOT_1_72_0
         cmake --build build
-        cmake --install build
+        cmake --install build --prefix dist
         
     - name: Upload
       if: github.event == 'release'
@@ -92,7 +91,7 @@ jobs:
       run: |
         cmake -B build -DXSDK_DIR=lib/SDK
         cmake --build build
-        cmake --install build
+        cmake --install build --prefix dist
         
     - name: Upload
       if: github.event == 'release'
