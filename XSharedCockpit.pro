@@ -24,8 +24,7 @@ INCLUDEPATH += "lib/boost_1_73_0"
 
 win32 {
     LIBS += -L"F:/Programming/X-Plane/XSharedCockpit/lib/SDK/Libraries/Win"
-    LIBS += -lXPLM_64
-    LIBS += -lXPWidgets_64
+    LIBS += -lXPLM_64 -lXPWidgets_64
     LIBS += -lws2_32
     DEFINES += APL=0 IBM=1 LIN=0
     TARGET = win

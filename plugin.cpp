@@ -67,13 +67,13 @@ bool is_connected = false;
 string master_address = "127.0.0.1";
 int master_port = 49000;
 string slave_address = "127.0.0.1";
-int slave_port = 49001;
+int slave_port = 49010;
 
 boost::asio::io_service io_service;
 udp::socket master{ io_service };
 udp::endpoint master_endpoint{};
 udp::socket slave{ io_service };
-udp::endpoint slave_endpoint;
+udp::endpoint slave_endpoint{};
 
 //Function defs
 void menu_handler(void*, void*);
@@ -152,7 +152,6 @@ PLUGIN_API int XPluginEnable(void) {
 
         master_dref_types.push_back(XPLMGetDataRefTypes(dref));
     }
-
 
     XPLMDebugString("XSharedCockpit initialized\n");
     return 1;
@@ -623,9 +622,7 @@ void start_slave() {
     XPLMDebugString("Binding to endpoint\n");
     try{
         slave.bind(slave_endpoint);
-        int value[1] = { 1 };
-        XPLMSetDatavi(XPLMFindDataRef("sim/operation/override/override_planepath"), value, 0, 1);
-        is_connected = true;
+        XPLMDebugString("Done binding to endpoint\n");
     }catch(const char* msg){
         XPLMDebugString(msg);
         XPLMDebugString("\n");
@@ -633,7 +630,9 @@ void start_slave() {
         running = false;
         return;
     }
-
+    int value[1] = { 1 };
+    XPLMSetDatavi(XPLMFindDataRef("sim/operation/override/override_planepath"), value, 0, 1);
+    is_connected = true;
     XPLMDebugString("Registering flight loop callback\n");
     XPLMRegisterFlightLoopCallback(loop, 2, NULL);
 }
