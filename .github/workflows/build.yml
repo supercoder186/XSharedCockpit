@@ -1,0 +1,112 @@
+name: Build
+
+on: [push, release]
+
+jobs:
+  build_lin:
+    name: Build on Linux
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+      
+    - name: Download X-Plane SDK
+      uses: carlosperate/download-file-action@v1.0.3
+      with:
+        file-url: http://developer.x-plane.com/wp-content/plugins/code-sample-generation/sample_templates/XPSDK303.zip
+        file-name: XSDK
+        location: lib
+    
+    - name: Build
+      run: |
+        cmake -B build -DXSDK_DIR=lib/XSDK
+        cmake --build build
+        cmake --install build
+        
+    - name: Upload
+      if: github.event == 'release'
+      uses: actions/upload-artifact@v2
+      with:
+        name: lin-x64
+        path: dist/XSharedCockpit/lin-x64/XSharedCockpit.xpl
+      
+  build_win:
+    name: Build on Windows
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v2
+      
+    - name: Download X-Plane SDK
+      uses: carlosperate/download-file-action@v1.0.3
+      with:
+        file-url: http://developer.x-plane.com/wp-content/plugins/code-sample-generation/sample_templates/XPSDK303.zip
+        file-name: XSDK
+        location: lib
+    
+    - name: Build
+      shell: bash
+      run: |
+        BOOST_ROOT=BOOST_ROOT_1_72_0
+        cmake -B build -DXSDK_DIR=lib/XSDK
+        cmake --build build
+        cmake --install build
+        
+    - name: Upload
+      if: github.event == 'release'
+      uses: actions/upload-artifact@v2
+      with:
+        name: win-x64
+        path: dist/XSharedCockpit/win-x64/XSharedCockpit.xpl
+        
+  build_mac:
+    name: Build on macOS
+    runs-on: macos-latest
+
+    steps:
+    - uses: actions/checkout@v2
+      
+    - name: Download X-Plane SDK
+      uses: carlosperate/download-file-action@v1.0.3
+      with:
+        file-url: http://developer.x-plane.com/wp-content/plugins/code-sample-generation/sample_templates/XPSDK303.zip
+        file-name: XSDK
+        location: lib
+        
+    - name: Install Boost
+      run: brew install boost
+    
+    - name: Build
+      run: |
+        cmake -B build -DXSDK_DIR=lib/XSDK
+        cmake --build build
+        cmake --install build
+        
+    - name: Upload
+      if: github.event == 'release'
+      uses: actions/upload-artifact@v2
+      with:
+        name: mac-x64
+        path: dist/XSharedCockpit/mac-x64/XSharedCockpit.xpl
+        
+  package:
+    name: Package the Plugin
+    if: github.event == 'release'
+    needs: [build_lin, build_win, build_mac]
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Download plugins
+      uses: actions/upload-artifact@v2
+      with:
+        path: XSharedCockpit
+        
+    - name: Package
+      run: zip -r XSharedCockpit XSharedCockpit
+      
+    - name: Upload
+      uses: JasonEtco/upload-to-release@master
+      with:
+        args: XSharedCockpit.zip
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
