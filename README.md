@@ -1,8 +1,7 @@
 # XSharedCockpit
 
 This is a new plugin for xplane that aims to allow simmers to share a cockpit
-Additionally, this plugin is available as a public repo on github over here, if you want to contribute to this project
-The plugin achieves this by syncing datarefs between a "master" and a "slave" computer. 
+The plugin achieves this by syncing datarefs and commands between a "master" and a "slave" computer. 
 # INSTALLATION
 To install, simply unzip the file and paste the folder named "XSharedCockpit" inside the Resources/plugins directory of your X-Plane folder
 # WHAT DOES THIS PLUGIN DO?
@@ -10,11 +9,12 @@ This plugin syncs datarefs and commands, to give the feeling of flying in one co
 # VIDEO TUTORIAL SERIES
 https://www.youtube.com/playlist?list=PLjahzB_xjsquR12hirZM15XZ1GwHiXeoe
 # USAGE
-An xsharedcockpit.cfg file must be present in the aircraft's root directory. You can simply rename the aircraft's smartcopilot.cfg file, and it will work BUT there is no error checking - if a dataref mentioned in there is not present in the sim, the plugin will crash, taking the sim down with it. Additionally, unlike the XSharedCockpit lua, the sim does not do anything except sync, so the syncing will not be perfect on things such as flap deflections and engine throttle % until the cfg file is updated.
+An xsharedcockpit.cfg file must be present in the aircraft's root directory. You can simply rename the aircraft's smartcopilot.cfg file, and it will work. Additionally, unlike the XSharedCockpit lua, the sim does not do anything except sync, so the syncing will not be perfect on things such as flap deflections and engine throttle % until the cfg file is updated.
 This plugin is still buggy and slightly unstable. Do not use it if you want a perfect experience like smartcopilot. I have also released videos detailing the plugin's usage
+# KNOWN ISSUES
+Currently, the linux build crashes when slave mode is activated. I will try to fix this soon
 # PERFORMANCE
 I am including this because I feel it is important (and imo a lot more plugins should do this). The performance impact of this plugin on my PC was negligible (and my PC is quite slow - i5-6200U, Geforce 940M)
-This is completely unlike the lua version of this plugin (that can be found here, though I don't know why you would use it)
 # DEVELOPMENT OF CFG FILES
 Details on how these are developed can be found on the smartcopilot website over here -> https://sky4crew.com/hangar/, as well as in the video tutorial series above ^
 Note that XSharedCockpit needs you to mention literally everything you want to sync, apart from aircraft position, velocity and orientation
