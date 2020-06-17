@@ -1,6 +1,5 @@
 //External libraries
 #include <boost/asio.hpp>
-#include <boost/bind/bind.hpp>
 #include "XPLMMenus.h"
 #include "XPLMProcessing.h"
 #include "XPLMDataAccess.h"
@@ -36,9 +35,6 @@ using std::stof;
 using std::back_inserter;
 using std::getline;
 
-//Namespace using defs
-using namespace boost::placeholders;
-
 //Constant defs
 const char STATE_DATAREF_STRING[] = "xsharedcockpit/state";
 
@@ -69,10 +65,11 @@ int master_port = 49000;
 string slave_address = "127.0.0.1";
 int slave_port = 49010;
 
-boost::asio::io_service io_service;
-udp::socket master{ io_service };
+boost::asio::io_service master_io_service;
+boost::asio::io_service slave_io_service;
+udp::socket master{ master_io_service };
 udp::endpoint master_endpoint{};
-udp::socket slave{ io_service };
+udp::socket slave{ slave_io_service };
 udp::endpoint slave_endpoint{};
 
 //Function defs
@@ -142,17 +139,6 @@ PLUGIN_API void XPluginDisable(void) {
 }
 
 PLUGIN_API int XPluginEnable(void) {
-    XPLMDebugString("XSharedCockpit initializing\n");
-    for (auto const& dref_name : master_dref_strings) {
-        auto values = split_once(dref_name, '[');
-
-        auto name = values[0];
-        auto dref = XPLMFindDataRef(name.c_str());
-        master_drefs.push_back(dref);
-
-        master_dref_types.push_back(XPLMGetDataRefTypes(dref));
-    }
-
     XPLMDebugString("XSharedCockpit initialized\n");
     return 1;
 }
@@ -262,7 +248,7 @@ void load_plugin() {
                     master_port = stoi(match[2]);
                 }
                 else if (name == "SLAVE_PORT") {
-                    XPLMDebugString("Slave address set to ");
+                    XPLMDebugString("Slave port set to ");
                     XPLMDebugString(match[2].str().append("\n").c_str());
                     slave_port = stoi(match[2]);
                 }
@@ -483,8 +469,6 @@ void send_datarefs() {
     dref_string.append(command_string);
     command_string = ",";
 
-    XPLMDebugString("Sending the dataref string");
-
     boost::system::error_code err;
     if (is_master) {
         master.send_to(boost::asio::buffer(dref_string), slave_endpoint, 0, err);
@@ -506,7 +490,7 @@ void sync_datarefs() {
         return;
     }
 
-    XPLMDebugString("Data is available");
+    XPLMDebugString("Data is available\n");
 
     char* buffer = new char[available];
     size_t bytes_transferred = (is_master) ? master.receive_from(boost::asio::buffer(buffer, available), receive_endpoint) : slave.receive_from(boost::asio::buffer(buffer, available), receive_endpoint);
@@ -518,7 +502,7 @@ void sync_datarefs() {
     vector<XPLMDataTypeID> dref_types = (is_master) ? slave_dref_types : master_dref_types;
     vector<XPLMDataRef> drefs = (is_master) ? slave_drefs : master_drefs;
 
-    XPLMDebugString("Parsing data");
+    XPLMDebugString("Parsing data\n");
 
     for (unsigned long long i = 0; i < dref_value_strings.size() - 1; i++) {
         auto dref_value_string = dref_value_strings.at(i);
@@ -575,11 +559,13 @@ void set_overrides() {
 }
 
 void start_master() {
+    XPLMSpeakString("Starting master");
+    XPLMDebugString("Starting master\n");
     is_master = true;
     running = true;
     load_plugin();
     set_overrides();
-    master = udp::socket(io_service);
+    master = udp::socket(master_io_service);
     master_endpoint = udp::endpoint(address::from_string(master_address), master_port);
     slave_endpoint = udp::endpoint(address::from_string(slave_address), slave_port);
     master.open(udp::v4());
@@ -589,6 +575,8 @@ void start_master() {
 }
 
 void stop_master() {
+    XPLMSpeakString("Stopping master");
+    XPLMDebugString("Stopping master\n");
     XPLMUnregisterFlightLoopCallback(loop , NULL);
     string close("close");
     boost::system::error_code err;
@@ -597,48 +585,37 @@ void stop_master() {
     is_connected = false;
     running = false;
     set_overrides();
-
-    int idx = 0;
-    for (auto i : commands) {
-        XPLMUnregisterCommandHandler(i, command_handler, true, command_pointers[idx]);
-        idx++;
-    }
 }
 
 void start_slave() {
+    XPLMSpeakString("Starting slave");
     XPLMDebugString("Starting slave\n");
     is_master = false;
     running = true;
-    XPLMDebugString("Loading plugin\n");
     load_plugin();
     set_overrides();
-    XPLMDebugString("Initializing socket\n");
-    slave = udp::socket(io_service);
-    XPLMDebugString("Declaring endpoints\n");
+    slave = udp::socket(slave_io_service);
     master_endpoint = udp::endpoint(address::from_string(master_address), master_port);
     slave_endpoint = udp::endpoint(address::from_string(slave_address), slave_port);
-    XPLMDebugString("Opening socket\n");
+    XPLMDebugString(master_address.append(":").append(to_string(master_port)).append("\n").c_str());
+    XPLMDebugString(slave_address.append(":").append(to_string(slave_port)).append("\n").c_str());
     slave.open(udp::v4());
     XPLMDebugString("Binding to endpoint\n");
-    try{
-        slave.bind(slave_endpoint);
-        XPLMDebugString("Done binding to endpoint\n");
-    }catch(const char* msg){
-        XPLMDebugString(msg);
-        XPLMDebugString("\n");
-        XPLMSpeakString("Error occurred. Cancelling slave initialisation");
-        running = false;
-        return;
-    }
+    slave.bind(slave_endpoint);
+    XPLMDebugString("Done binding to endpoint\n");
     int value[1] = { 1 };
     XPLMSetDatavi(XPLMFindDataRef("sim/operation/override/override_planepath"), value, 0, 1);
     is_connected = true;
-    XPLMDebugString("Registering flight loop callback\n");
     XPLMRegisterFlightLoopCallback(loop, 2, NULL);
 }
 
 void stop_slave() {
+    XPLMSpeakString("Stopping slave");
+    XPLMDebugString("Stopping slave\n");
     XPLMUnregisterFlightLoopCallback(loop, NULL);
+    string close("close");
+    boost::system::error_code err;
+    slave.send_to(boost::asio::buffer(close), master_endpoint, 0, err);
     slave.close();
     int value[1] = { 0 };
     XPLMSetDatavi(XPLMFindDataRef("sim/operation/override/override_planepath"), value, 0, 1);
