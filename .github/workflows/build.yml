@@ -14,18 +14,18 @@ jobs:
       uses: carlosperate/download-file-action@v1.0.3
       with:
         file-url: http://developer.x-plane.com/wp-content/plugins/code-sample-generation/sample_templates/XPSDK303.zip
-        file-name: XSDK
+        file-name: SDK.zip
         location: ./lib
         
     - name: Uncompress X-Plane SDK
-      run: cd lib && unzip XSDK.zip && cd ..
+      run: cd lib && unzip SDK && cd ..
 
     - name: Install Boost
       run: brew install boost
     
     - name: Build
       run: |
-        cmake -B build -DXSDK_DIR=lib/XSDK
+        cmake -B build -DXSDK_DIR=lib/SDK
         cmake --build build
         cmake --install build
         
@@ -47,17 +47,17 @@ jobs:
       uses: carlosperate/download-file-action@v1.0.3
       with:
         file-url: http://developer.x-plane.com/wp-content/plugins/code-sample-generation/sample_templates/XPSDK303.zip
-        file-name: XSDK
+        file-name: SDK.zip
         location: ./lib
         
     - name: Uncompress X-Plane SDK
-      run: cd lib && unzip XSDK.zip && cd ..
+      run: cd lib && unzip SDK && cd ..
     
     - name: Build
       shell: bash
       run: |
         BOOST_ROOT=$BOOST_ROOT_1_72_0
-        cmake -B build -DXSDK_DIR=lib/XSDK
+        cmake -B build -DXSDK_DIR=lib/SDK
         cmake --build build
         cmake --install build
         
@@ -79,18 +79,18 @@ jobs:
       uses: carlosperate/download-file-action@v1.0.3
       with:
         file-url: http://developer.x-plane.com/wp-content/plugins/code-sample-generation/sample_templates/XPSDK303.zip
-        file-name: XSDK.zip
+        file-name: SDK.zip
         location: ./lib
         
     - name: Uncompress X-Plane SDK
-      run: cd lib && unzip XSDK.zip && cd ..
+      run: cd lib && unzip SDK && cd ..
         
     - name: Install Boost
       run: brew install boost
     
     - name: Build
       run: |
-        cmake -B build -DXSDK_DIR=lib/XSDK
+        cmake -B build -DXSDK_DIR=lib/SDK
         cmake --build build
         cmake --install build
         
