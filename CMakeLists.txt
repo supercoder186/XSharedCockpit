@@ -37,7 +37,7 @@ endif()
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
   set(SYSTEM_NAME "linux_x64")
   add_definitions(-DLIN=1)
-  target_link_options(plugin PRIVATE "-shared -fvisibility=hidden -rdynamic -nodefaultlibs -undefined_warning")
+  target_link_options(plugin PRIVATE "-shared -fvisibility=hidden -rdynamic -nodefaultlibs -Wl,--warn-unresolved-symbols")
 endif()
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
