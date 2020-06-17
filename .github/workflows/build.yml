@@ -16,6 +16,9 @@ jobs:
         file-url: http://developer.x-plane.com/wp-content/plugins/code-sample-generation/sample_templates/XPSDK303.zip
         file-name: XSDK
         location: lib
+        
+    - name: Uncompress X-Plane SDK
+      run: cd lib && unzip XSDK.zip && cd ..
     
     - name: Build
       run: |
@@ -43,6 +46,9 @@ jobs:
         file-url: http://developer.x-plane.com/wp-content/plugins/code-sample-generation/sample_templates/XPSDK303.zip
         file-name: XSDK
         location: lib
+        
+    - name: Uncompress X-Plane SDK
+      run: cd lib && unzip XSDK.zip && cd ..
     
     - name: Build
       shell: bash
@@ -70,8 +76,11 @@ jobs:
       uses: carlosperate/download-file-action@v1.0.3
       with:
         file-url: http://developer.x-plane.com/wp-content/plugins/code-sample-generation/sample_templates/XPSDK303.zip
-        file-name: XSDK
+        file-name: XSDK.zip
         location: lib
+        
+    - name: Uncompress X-Plane SDK
+      run: cd lib && unzip XSDK.zip && cd ..
         
     - name: Install Boost
       run: brew install boost
