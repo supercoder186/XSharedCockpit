@@ -111,7 +111,7 @@ jobs:
     
     steps:
     - name: Download plugins
-      uses: actions/upload-artifact@v2
+      uses: actions/download-artifact@v2
       with:
         path: XSharedCockpit
         
@@ -119,8 +119,7 @@ jobs:
       run: zip -r XSharedCockpit XSharedCockpit
       
     - name: Upload
-      uses: JasonEtco/upload-to-release@master
+      uses: AButler/upload-release-assets@v2.0
       with:
-        args: XSharedCockpit.zip
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        files: 'XSharedCockpit.zip'
+        repo-token: ${{ secrets.GITHUB_TOKEN }}
