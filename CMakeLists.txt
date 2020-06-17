@@ -51,10 +51,7 @@ target_link_libraries(plugin ${XSDK_LIBRARIES})
 
 # Modules
 set(Boost_USE_STATIC_LIBS ON)
-find_package(Boost 1.72.0 REQUIRED COMPONENTS system)
-
-target_link_directories(plugin PRIVATE ${Boost_LIBRARY_DIRS})
-target_link_libraries(plugin ${Boost_LIBRARIES})
+find_package(Boost 1.72.0 REQUIRED)
 
 # Headers
 target_include_directories(plugin PUBLIC "${XSDK_INCLUDE}/XPLM")
