@@ -13,7 +13,7 @@ https://www.youtube.com/playlist?list=PLjahzB_xjsquR12hirZM15XZ1GwHiXeoe
 An xsharedcockpit.cfg file must be present in the aircraft's root directory. You can simply rename the aircraft's smartcopilot.cfg file, and it will work. Additionally, unlike the XSharedCockpit lua, the sim does not do anything except sync, so the syncing will not be perfect on things such as flap deflections and engine throttle % until the cfg file is updated.
 This plugin is still buggy and slightly unstable. Do not use it if you want a perfect experience like smartcopilot. I have also released videos detailing the plugin's usage
 ## KNOWN ISSUES
-Currently, the linux build crashes when slave mode is activated. I will try to fix this soon
+Currently, when slave mode is activated, if the slave port (and perhaps address) is not set in the config file, the plugin crashes. The simple fix is just to set this in the config file, but I will try to fix this soon
 ## PERFORMANCE
 I am including this because I feel it is important (and imo a lot more plugins should do this). The performance impact of this plugin on my PC was negligible (and my PC is quite slow - i5-6200U, Geforce 940M)
 ## DEVELOPMENT OF CFG FILES
