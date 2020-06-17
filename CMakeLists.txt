@@ -35,7 +35,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
 endif()
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-  set(SYSTEM_NAME "linux_x64")
+  set(SYSTEM_NAME "lin_x64")
   add_definitions(-DLIN=1)
   set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -static-libstdc++ -shared -fvisibility=hidden -rdynamic -nodefaultlibs -Wl,--warn-unresolved-symbols")
 endif()

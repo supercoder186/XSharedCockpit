@@ -1,6 +1,9 @@
 name: Build
 
-on: [push, release]
+on: 
+  push:
+  release:
+    types: [created]
 
 jobs:
   build_lin:
@@ -30,11 +33,11 @@ jobs:
         cmake --install build --prefix dist
         
     - name: Upload
-      if: github.event == 'release'
+      if: github.event_name == 'release'
       uses: actions/upload-artifact@v2
       with:
-        name: lin-x64
-        path: dist/XSharedCockpit/lin-x64/XSharedCockpit.xpl
+        name: lin_x64
+        path: dist/XSharedCockpit/lin_x64/XSharedCockpit.xpl
       
   build_win:
     name: Build on Windows
@@ -61,11 +64,11 @@ jobs:
         cmake --install build --prefix dist
         
     - name: Upload
-      if: github.event == 'release'
+      if: github.event_name == 'release'
       uses: actions/upload-artifact@v2
       with:
-        name: win-x64
-        path: dist/XSharedCockpit/win-x64/XSharedCockpit.xpl
+        name: win_x64
+        path: dist/XSharedCockpit/win_x64/XSharedCockpit.xpl
         
   build_mac:
     name: Build on macOS
@@ -94,15 +97,15 @@ jobs:
         cmake --install build --prefix dist
         
     - name: Upload
-      if: github.event == 'release'
+      if: github.event_name == 'release'
       uses: actions/upload-artifact@v2
       with:
-        name: mac-x64
-        path: dist/XSharedCockpit/mac-x64/XSharedCockpit.xpl
+        name: mac_x64
+        path: dist/XSharedCockpit/mac_x64/XSharedCockpit.xpl
         
   package:
     name: Package the Plugin
-    if: github.event == 'release'
+    if: github.event_name == 'release'
     needs: [build_lin, build_win, build_mac]
     runs-on: ubuntu-latest
     
