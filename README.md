@@ -1,7 +1,8 @@
 # XSharedCockpit
 
 This is a new plugin for xplane that aims to allow simmers to share a cockpit
-The plugin achieves this by syncing datarefs and commands between a "master" and a "slave" computer. 
+The plugin achieves this by syncing datarefs and commands between a "master" and a "slave" computer.
+The file download on the X-Plane forums can be found over here -> https://forums.x-plane.org/index.php?/files/file/63124-xsharedcockpit/
 ## INSTALLATION
 To install, simply unzip the file and paste the folder named "XSharedCockpit" inside the Resources/plugins directory of your X-Plane folder
 ## WHAT DOES THIS PLUGIN DO?
