@@ -3,6 +3,8 @@
 This is a new plugin for xplane that aims to allow simmers to share a cockpit
 The plugin achieves this by syncing datarefs and commands between a "master" and a "slave" computer.
 The file download on the X-Plane forums can be found over here -> https://forums.x-plane.org/index.php?/files/file/63124-xsharedcockpit/
+## IMPORTANT NOTE
+This plugin is no longer under active development. If anyone wants to take over the development of the plugin, open an issue and I will add you as a collaborator
 ## INSTALLATION
 To install, simply unzip the file and paste the folder named "XSharedCockpit" inside the Resources/plugins directory of your X-Plane folder
 ## WHAT DOES THIS PLUGIN DO?
@@ -26,5 +28,3 @@ There is now a dataref named "xsharedcockpit/state". It is an int dataref
 2 - Running in slave mode
 ## IMPORTANT NOTE
 I haven't had the opportunity to test version 1.1 - it might be unstable / non-functional (though I doubt it, since I went through the code thoroughly, and the actual change to the codebase was small). I would love it if someone would take the time to understand how the plugin works through the video series, and test it for me. Note that it uses the UDP protocol for transmission. Anyways, the added features in 1.1 should offset this potential instability, so give it a try. If it is unstable, this is the link to the older V1.0 files -> https://github.com/supercoder186/XSharedCockpit/releases/download/1.0/XSharedCockpit.zip
-## DEVELOPMENT FORUM
-I have created a new forum in order to discuss feature requests, etc. It can be found over here -> 
